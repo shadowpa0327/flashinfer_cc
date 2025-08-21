@@ -26,7 +26,7 @@ at::Tensor BatchPagedAttentionPlan(at::Tensor float_workspace_buffer,
 void BatchPagedAttentionRun(at::Tensor float_workspace_buffer, at::Tensor int_workspace_buffer,
                             at::Tensor plan_info_vec, at::Tensor q, at::Tensor k_cache,
                             at::Tensor v_cache, at::Tensor kv_indices, at::Tensor o,
-                            at::Tensor layer_idx, std::optional<at::Tensor> maybe_lse, int64_t mask_mode_code,
+                            at::Tensor layer_idx, bool is_per_head_indices, std::optional<at::Tensor> maybe_lse, int64_t mask_mode_code,
                             int64_t layout_code, int64_t num_qo_heads, int64_t num_kv_heads,
                             int64_t page_size, double sm_scale ADDITIONAL_FUNC_PARAMS PROFILER_FUNC_PARAMS);
 

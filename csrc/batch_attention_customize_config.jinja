@@ -97,7 +97,9 @@ struct PersistentParams {
 
 
   // NOTE(brian1009): for multi-layer planning
-  uint32_t kv_indices_stride;
+  uint32_t kv_indices_stride_layer;
+  uint32_t kv_indices_stride_head;
+  bool is_per_head_indices;
   IdType* layer_idx;
 
   float sm_scale;

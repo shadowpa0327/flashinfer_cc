@@ -174,8 +174,9 @@ struct BlockBatchPagedAttentionPersistent {
     DTypeQ* q = params.q;
     DTypeKV* k = params.k;
     DTypeKV* v = params.v;
-    const uint32_t kv_indices_stride = params.kv_indices_stride;
-    IdType* kv_indices = params.kv_indices + params.layer_idx[0] * kv_indices_stride;
+    const uint32_t kv_indices_stride_layer = params.kv_indices_stride_layer;
+    const uint32_t kv_indices_stride_head = params.kv_indices_stride_head;
+    IdType* kv_indices = params.kv_indices + params.layer_idx[0] * kv_indices_stride_layer;
     float* partial_lse = params.partial_lse;
     IdType* work_indptr = params.work_indptr;
 
@@ -275,10 +276,9 @@ struct BlockBatchPagedAttentionPersistent {
       // last kv tile
       __syncthreads();
       uint32_t packed_kv_bound = kv_indptr * block_size + kv_len;
-
       prefetch_offest<KTraits>(block_iter_base + kv_tile_idx * CTA_TILE_KV, packed_kv_bound,
                                kv_head_idx, k_stride_page, k_stride_h, k_stride_n, block_size,
-                               kv_indices, thr_local_kv_offset);
+                               kv_indices + (params.is_per_head_indices ? kv_head_idx : 0) * kv_indices_stride_head, thr_local_kv_offset);
       page_produce_kv<false, KTraits>(smem_storage, &k_smem_offset_w, k,
                                       kv_start + kv_tile_idx * CTA_TILE_KV, thr_local_kv_offset,
                                       kv_end, warp_idx, lane_idx);
@@ -294,7 +294,7 @@ struct BlockBatchPagedAttentionPersistent {
           kv_tile_idx + 1 > NUM_STAGES, {
             prefetch_offest<KTraits>(block_iter_base + (kv_tile_idx - 1) * CTA_TILE_KV,
                                      packed_kv_bound, kv_head_idx, k_stride_page, k_stride_h,
-                                     k_stride_n, block_size, kv_indices, thr_local_kv_offset);
+                                     k_stride_n, block_size, kv_indices + (params.is_per_head_indices ? kv_head_idx : 0) * kv_indices_stride_head, thr_local_kv_offset);
             cp_async::wait_group<1>();
             __syncthreads();
 

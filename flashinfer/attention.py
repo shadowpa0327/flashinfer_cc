@@ -67,7 +67,7 @@ class BatchAttention:
         self,
         qo_indptr: torch.Tensor,
         kv_indptr: torch.Tensor,
-        kv_indices: torch.Tensor, # (num_layers, total_kv_indices) or (total_kv_indices)
+        kv_indices: torch.Tensor, # (num_layers, kv_heads, total_kv_indices) or (kv_heads, total_kv_indices)
         kv_len_arr: torch.Tensor,
         num_qo_heads: int,
         num_kv_heads: int,
@@ -76,6 +76,7 @@ class BatchAttention:
         page_size: int,
         layer_idx: torch.Tensor, # a 0-D tensors, buffer for deciding which layers of per-head kv indices to use
         causal: bool = False,
+        is_per_head_indices: bool = False,
         sm_scale: float = None,
         q_data_type: torch.dtype = torch.bfloat16,
         kv_data_type: torch.dtype = torch.bfloat16,
@@ -123,6 +124,7 @@ class BatchAttention:
         self._layer_idx = layer_idx
         # If set, the self._layer_idx will be in-place added by one after each call of run()
         self._add_layer_idx_by_one_after_run = add_layer_idx_by_one_after_run
+        self._is_per_head_indices = is_per_head_indices
 
         self._plan_info = self.module.plan(
             self.float_workspace_buffer,
@@ -176,6 +178,7 @@ class BatchAttention:
             self._kv_indices,
             out,
             self._layer_idx,
+            self._is_per_head_indices,
             lse,
             self._mask_mode,
             TensorLayout[self._kv_layout].value,
@@ -283,6 +286,7 @@ class BatchAttentionWithPerHeadSelectPagedKVCacheWrapper:
                     device=str(self.device)
                 )
             except (ImportError, RuntimeError):
+                print("[Warning] Triton kernel not available, falling back to PyTorch")
                 # Fallback to PyTorch if Triton kernel not available
                 use_triton = False
         
